@@ -7,7 +7,7 @@ void main() async {
 
   await Supabase.initialize(
     url: 'https://zqutxdesvnnajgccprak.supabase.co',
-    anonKey: 'sb_secret_75KM0K3OSuiIIYBKULBe2A_ZU4xhrB5',
+    anonKey: 'sb_publishable_Jbhl52PuvlBjEz566KE2rQ_0a3QKehg',
   );
   final supabase = Supabase.instance.client;
 

@@ -3,7 +3,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'audio_cache.dart';
+import 'audio_cache.dart';
 
+
+
+final AudioCacheManager _cache = AudioCacheManager();
 final supabase = Supabase.instance.client;
 
 /// ===============================
@@ -112,14 +117,31 @@ class AudioService extends ChangeNotifier {
   }
 
   Future<void> playFromList(
-    List<Map<String, dynamic>> tracks,
+  List<Map<String, dynamic>> tracks,
     int index,
   ) async {
+    
     _queue = tracks;
 
-    final sources = tracks.map((t) {
-      return AudioSource.uri(Uri.parse(t['audio_url']));
-    }).toList();
+    final sources = <AudioSource>[];
+
+    for (final track in tracks) {
+      final id = track['id'].toString();
+      final url = track['audio_url'];
+
+      final cachedFile = await _cache.getCachedAudio(
+        trackId: id,
+        audioUrl: url,
+      );
+
+      if (cachedFile != null) {
+        print('▶️ Reproduciendo desde CACHE: $id');
+        sources.add(AudioSource.file(cachedFile.path));
+      } else {
+        print('🌐 Reproduciendo desde RED: $id');
+        sources.add(AudioSource.uri(Uri.parse(url)));
+      }
+    }
 
     await _player.setAudioSource(
       ConcatenatingAudioSource(children: sources),
@@ -129,7 +151,6 @@ class AudioService extends ChangeNotifier {
     await _player.play();
     notifyListeners();
   }
-
   void togglePlayPause() {
     _player.playing ? _player.pause() : _player.play();
     notifyListeners();
@@ -224,5 +245,3 @@ Future<List<Map<String, dynamic>>> fetchTracksFromPlaylist(
     };
   }).toList();
 }
-
-

@@ -61,7 +61,7 @@ class _SongListPageState extends State<SongListPage> {
                       },
                     ),
                   onTap: () {
-                    audio.playFromList(songs, index);
+                    audio.playFromList(songs, index, sourceLabel: 'Canciones');
                   },
                 );
               },

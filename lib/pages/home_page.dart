@@ -3,7 +3,8 @@ import 'song_list.dart';
 import 'upload_track_page.dart';
 import '../services/audio_service.dart';
 import 'playlists_page.dart';
-import 'package:just_audio/just_audio.dart';
+import 'profile_page.dart';
+
 
 
 class HomePage extends StatefulWidget {
@@ -21,14 +22,13 @@ class _HomePageState extends State<HomePage> {
     final audio = AudioService();
 
     final pages = [
-      const _SettingsPage(),
       const SongListPage(),
       const PlaylistsPage(),
       const UploadTrackPage(),
-      const _ProfilePage(),
+      const ProfilePage(),
     ];
 
-    final titles = ['Ajustes', 'Canciones', 'Listas', 'Agregar', 'Perfil'];
+    final titles = ['Canciones', 'Listas', 'Agregar', 'Perfil'];
 
     return Scaffold(
       appBar: AppBar(
@@ -52,8 +52,6 @@ class _HomePageState extends State<HomePage> {
               setState(() => _selectedIndex = i);
             },
             destinations: const [
-              NavigationDestination(
-                  icon: Icon(Icons.settings), label: 'Ajustes'),
               NavigationDestination(
                   icon: Icon(Icons.library_music), label: 'Canciones'),
               NavigationDestination(
@@ -80,6 +78,7 @@ class _MiniPlayer extends StatelessWidget {
     final audio = AudioService();
     final track = audio.currentTrack!;
     final player = audio.player;
+
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -115,6 +114,14 @@ class _MiniPlayer extends StatelessWidget {
                         color: Colors.grey.shade600,
                       ),
                     ),
+                    if (audio.sourceLabel  != null)
+                      Text(
+                        audio.sourceLabel!,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -206,25 +213,3 @@ class _MiniPlayer extends StatelessWidget {
   }
 }
 
-
-
-
-/// ===============================
-/// PLACEHOLDERS
-/// ===============================
-
-class _SettingsPage extends StatelessWidget {
-  const _SettingsPage();
-
-  @override
-  Widget build(BuildContext context) =>
-      const Center(child: Text('Ajustes'));
-}
-
-class _ProfilePage extends StatelessWidget {
-  const _ProfilePage();
-
-  @override
-  Widget build(BuildContext context) =>
-      const Center(child: Text('Perfil'));
-}

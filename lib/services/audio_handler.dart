@@ -1,84 +1,69 @@
 import 'package:audio_service/audio_service.dart';
-import 'package:just_audio/just_audio.dart';
+import 'audio_controller.dart' as app; 
 
-class MyAudioHandler extends BaseAudioHandler
-    with QueueHandler, SeekHandler {
-  final _player = AudioPlayer();
+class AppAudioHandler extends BaseAudioHandler {
+  final app.AudioController audio = app.AudioController();
 
-  MyAudioHandler() {
-    _player.playerStateStream.listen(_broadcastState);
-    _player.currentIndexStream.listen((index) {
-      final list = queue.value;
-
-      if (index != null && list.isNotEmpty && index < list.length) {
-        mediaItem.add(list[index]);
-      }
-
-    });
-  }
-
-  void _broadcastState(PlayerState state) {
+  AppAudioHandler() {
+    // Estado inicial
     playbackState.add(
       PlaybackState(
         controls: [
           MediaControl.skipToPrevious,
-          state.playing ? MediaControl.pause : MediaControl.play,
+          MediaControl.play,
+          MediaControl.pause,
           MediaControl.skipToNext,
         ],
-        androidCompactActionIndices: const [0, 1, 2],
-        processingState: const {
-          ProcessingState.idle: AudioProcessingState.idle,
-          ProcessingState.loading: AudioProcessingState.loading,
-          ProcessingState.buffering: AudioProcessingState.buffering,
-          ProcessingState.ready: AudioProcessingState.ready,
-          ProcessingState.completed: AudioProcessingState.completed,
-        }[state.processingState]!,
-        playing: state.playing,
+        systemActions: const {
+          MediaAction.play,
+          MediaAction.pause,
+          MediaAction.skipToNext,
+          MediaAction.skipToPrevious,
+        },
+        playing: audio.isPlaying,
+      ),
+    );
+
+    // Escuchar cambios de tu reproductor
+    audio.addListener(_syncState);
+  }
+
+  void _syncState() {
+    playbackState.add(
+      playbackState.value.copyWith(
+        playing: audio.isPlaying,
       ),
     );
   }
 
-  Future<void> playFromList(
-    List<Map<String, dynamic>> tracks,
-    int index,
-  ) async {
-    final mediaItems = tracks.map((t) {
-      return MediaItem(
-        id: t['audio_url'],
-        title: t['title'],
-        artist: t['artist'] ?? '',
-      );
-    }).toList();
-
-    queue.add(mediaItems);
-
-    final sources = tracks.map((t) {
-      return AudioSource.uri(Uri.parse(t['audio_url']));
-    }).toList();
-
-    await _player.setAudioSource(
-      ConcatenatingAudioSource(children: sources),
-      initialIndex: index,
-    );
-
-    await play();
+  // 🎧 CASCOS / SISTEMA
+  @override
+  Future<void> play() async {
+    print('🎧 PLAY desde sistema');
+    audio.togglePlayPause();
   }
 
   @override
-  Future<void> play() => _player.play();
+  Future<void> pause() async {
+    print('🎧 PAUSE desde sistema');
+    audio.togglePlayPause();
+  }
 
   @override
-  Future<void> pause() => _player.pause();
+  Future<void> skipToNext() async {
+    print('🎧 NEXT desde sistema');
+    audio.playNext();
+  }
 
   @override
-  Future<void> skipToNext() => _player.seekToNext();
-
-  @override
-  Future<void> skipToPrevious() => _player.seekToPrevious();
+  Future<void> skipToPrevious() async {
+    print('🎧 PREVIOUS desde sistema');
+    audio.playPrevious();
+  }
 
   @override
   Future<void> stop() async {
-    await _player.stop();
-    await super.stop();
+    print('🎧 STOP desde sistema');
+    audio.stopAndClear();
   }
 }

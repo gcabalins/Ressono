@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../services/audio_service.dart';
+import '../services/audio_controller.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class UploadTrackPage extends StatefulWidget {

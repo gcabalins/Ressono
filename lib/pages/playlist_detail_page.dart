@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../services/audio_service.dart';
+import '../services/audio_controller.dart';
 
 class PlaylistDetailPage extends StatefulWidget {
   final String playlistId;
@@ -34,7 +34,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final audio = AudioService();
+    final audio = AudioController();
 
     return Scaffold(
       appBar: AppBar(

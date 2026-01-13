@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../services/audio_service.dart';
+import '../services/audio_controller.dart';
 
 class SongListPage extends StatefulWidget {
   const SongListPage({super.key});
@@ -27,7 +27,7 @@ class _SongListPageState extends State<SongListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final audio = AudioService();
+    final audio = AudioController();
 
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _tracksFuture,

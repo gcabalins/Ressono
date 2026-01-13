@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'pages/home_page.dart';
+import 'package:Ressono/services/audio_service_init.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +17,8 @@ void main() async {
     email: 'gcabalins@gmail.com',      // el mismo que pusiste al crear el usuario
     password: '12345678',        // la contraseña que tú escribiste allí
   );
+
+  //await initAudioService();
   runApp(const MyApp());
 }
 

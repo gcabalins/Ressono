@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'package:Ressono/services/audio_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'audio_cache.dart';
 import 'metadata_cache.dart';
+
 
 
 final AudioCacheManager _cache = AudioCacheManager();
@@ -148,10 +150,10 @@ Future<List<Map<String, dynamic>>> fetchTracks() async {
 ///  AUDIO CONTROLLER (CLAVE)
 /// ===============================
 
-class AudioService extends ChangeNotifier {
-  static final AudioService _instance = AudioService._internal();
-  factory AudioService() => _instance;
-  AudioService._internal() {
+class AudioController extends ChangeNotifier {
+  static final AudioController _instance = AudioController._internal();
+  factory AudioController() => _instance;
+  AudioController._internal() {
     _init();
   }
 

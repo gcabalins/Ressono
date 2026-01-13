@@ -72,13 +72,45 @@ class AudioCacheManager {
     return total;
   }
 
-  /// LRU simple (borra más antiguos)
+  Future<bool> isTrackCached(String trackId) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/$_cacheFolder/$trackId.mp3');
+    return file.exists();
+  }
+
+  /// ⬇️ Descarga EN SEGUNDO PLANO (mientras suena)
+  Future<void> cacheInBackground({
+    required String trackId,
+    required String audioUrl,
+  }) async {
+    final dir = await _cacheDir();
+    final file = File('${dir.path}/$trackId.mp3');
+
+    if (await file.exists()) {
+      print('🟢 Ya cacheado: $trackId');
+      return;
+    }
+
+    print('⬇️ Descargando en background: $trackId');
+
+    try {
+      final response = await http.get(Uri.parse(audioUrl));
+
+      await file.writeAsBytes(response.bodyBytes);
+
+      final mb =
+          response.bodyBytes.length / 1024 / 1024;
+
+      print('📥 Descargados ${mb.toStringAsFixed(2)} MB → $trackId');
+
+      await _enforceCacheLimit();
+    } catch (e) {
+      print('❌ Error descargando $trackId → $e');
+    }
+  }
+
+  /// 🧹 LRU simple
   Future<void> _enforceCacheLimit() async {
-    int total = await _totalCacheSize();
-    if (total <= MAX_CACHE_SIZE) return;
-
-    print('🧹 Cache excede 1GB, limpiando...');
-
     final dir = await _cacheDir();
     final files = dir
         .listSync()
@@ -87,28 +119,59 @@ class AudioCacheManager {
       ..sort((a, b) =>
           a.statSync().modified.compareTo(b.statSync().modified));
 
+    int total = 0;
+    for (final f in files) {
+      total += await f.length();
+    }
+
+    print('📦 Cache total ${(total / 1024 / 1024).toStringAsFixed(2)} MB');
+
+    if (total <= MAX_CACHE_SIZE) return;
+
+    print('🧹 Cache supera 1GB, limpiando…');
+
     for (final f in files) {
       final size = await f.length();
       await f.delete();
       total -= size;
-
-      print('🗑️ Eliminado ${f.path.split('/').last}');
-
+      print('🗑️ Eliminado ${f.path}');
       if (total <= MAX_CACHE_SIZE) break;
     }
   }
 
-  /// Limpieza manual
+    /// 📊 Tamaño total de la caché (en MB)
+  Future<double> getCacheSizeMB() async {
+    final dir = await _cacheDir();
+    int total = 0;
+
+    for (final f in dir.listSync()) {
+      if (f is File) {
+        total += await f.length();
+      }
+    }
+
+    final mb = total / 1024 / 1024;
+    print('📊 Cache ocupa ${mb.toStringAsFixed(2)} MB');
+    return mb;
+  }
+
+  /// 🔥 Limpiar caché manualmente
   Future<void> clearCache() async {
     final dir = await _cacheDir();
+
+    int count = 0;
     for (final f in dir.listSync()) {
-      if (f is File) await f.delete();
+      if (f is File) {
+        await f.delete();
+        count++;
+      }
     }
-    print('🔥 Cache limpiada manualmente');
+
+    print('🔥 Cache limpiada ($count archivos)');
   }
-  Future<bool> isTrackCached(String trackId) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/$_cacheFolder/$trackId.mp3');
-    return file.exists();
-  }
+
+  /// ⚙️ Tamaño máximo actual
+  int get maxCacheSizeMB => MAX_CACHE_SIZE ~/ 1024 ~/ 1024;
+
+
 }

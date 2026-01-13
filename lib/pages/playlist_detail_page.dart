@@ -23,6 +23,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
   void initState() {
     super.initState();
     _tracksFuture = fetchTracksFromPlaylist(widget.playlistId);
+    
   }
 
   String _formatDuration(int seconds) {
@@ -46,7 +47,12 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
               final tracks = await fetchTracksFromPlaylist(widget.playlistId);
               if (tracks.isEmpty) return;
 
-              audio.playFromList(tracks, 0);
+              audio.playFromList(
+                tracks,
+                0,
+                sourceLabel: 'Lista: ${widget.playlistName}',
+              );
+
             },
           ),
         ],
@@ -93,7 +99,11 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                       ),
                     ),
                     onTap: () {
-                      audio.playFromList(tracks, index);
+                      audio.playFromList(
+                        tracks,
+                        index,
+                        sourceLabel: 'Lista: ${widget.playlistName}',
+                      );
                     },
                   );
                 },

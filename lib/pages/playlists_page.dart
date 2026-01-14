@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/audio_controller.dart';
+import '../services/audio_service.dart';
 import 'playlist_detail_page.dart';
 
 class PlaylistsPage extends StatefulWidget {

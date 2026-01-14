@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'song_list.dart';
 import 'upload_track_page.dart';
-import '../services/audio_controller.dart';
+import '../services/audio_service.dart';
 import 'playlists_page.dart';
 import 'profile_page.dart';
 
@@ -19,7 +19,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final audio = AudioController();
+    final audio = AudioService();
 
     final pages = [
       const SongListPage(),
@@ -75,7 +75,7 @@ class _HomePageState extends State<HomePage> {
 class _MiniPlayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final audio = AudioController();
+    final audio = AudioService();
     final track = audio.currentTrack!;
     final player = audio.player;
 
@@ -212,4 +212,3 @@ class _MiniPlayer extends StatelessWidget {
     return '$m:$s';
   }
 }
-

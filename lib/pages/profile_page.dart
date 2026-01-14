@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/audio_cache.dart';
-import '../services/audio_controller.dart';
+import '../services/audio_service.dart';
 import 'settings_page.dart';
 
 
@@ -100,7 +100,7 @@ class _ProfilePageState extends State<ProfilePage> {
             title: const Text('Cerrar sesión'),
             onTap: () async {
               await supabase.auth.signOut();
-              AudioController().stopAndClear();
+              AudioService().stopAndClear();
 
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(

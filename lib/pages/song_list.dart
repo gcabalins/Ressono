@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../services/audio_controller.dart';
+import '../services/audio_service.dart';
 
 class SongListPage extends StatefulWidget {
   const SongListPage({super.key});
@@ -27,7 +27,7 @@ class _SongListPageState extends State<SongListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final audio = AudioController();
+    final audio = AudioService();
 
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _tracksFuture,
@@ -88,6 +88,17 @@ class _SongListPageState extends State<SongListPage> {
                 onTap: () {
                   Navigator.pop(context);
                   _showAddToPlaylistModal(context, track);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Eliminar cancion'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await deleteTrack(track['id']);
+                  setState(() {
+                    _tracksFuture = fetchTracks();
+                  });
                 },
               ),
             ],

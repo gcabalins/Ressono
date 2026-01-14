@@ -1,12 +1,10 @@
 import 'dart:io';
-import 'package:Ressono/services/audio_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'audio_cache.dart';
 import 'metadata_cache.dart';
-
 
 
 final AudioCacheManager _cache = AudioCacheManager();
@@ -150,10 +148,10 @@ Future<List<Map<String, dynamic>>> fetchTracks() async {
 ///  AUDIO CONTROLLER (CLAVE)
 /// ===============================
 
-class AudioController extends ChangeNotifier {
-  static final AudioController _instance = AudioController._internal();
-  factory AudioController() => _instance;
-  AudioController._internal() {
+class AudioService extends ChangeNotifier {
+  static final AudioService _instance = AudioService._internal();
+  factory AudioService() => _instance;
+  AudioService._internal() {
     _init();
   }
 
@@ -385,4 +383,50 @@ Future<void> updateTrackDuration({
       .eq('audio_url', audioUrl);
 
   print('✅ Duración actualizada en BD');
+}
+Future<void> deleteTrack(String trackId) async {
+  final user = supabase.auth.currentUser;
+  if (user == null) throw Exception('No autenticado');
+
+  print('🗑️ Iniciando borrado de track $trackId');
+
+  /// 1️⃣ Obtener el audio_url
+  final trackData = await supabase
+      .from('tracks')
+      .select('audio_url')
+      .eq('id', trackId)
+      .single();
+
+  final audioUrl = trackData['audio_url'] as String;
+
+  /// 2️⃣ Eliminar de playlist_tracks
+  await supabase
+      .from('playlist_tracks')
+      .delete()
+      .eq('track_id', trackId);
+
+  print('✅ Eliminado de playlist_tracks');
+
+  /// 3️⃣ Eliminar de tracks
+  await supabase
+      .from('tracks')
+      .delete()
+      .eq('id', trackId);
+
+  print('✅ Eliminado de tracks');
+
+  /// 4️⃣ Eliminar archivo de Supabase Storage
+  try {
+    final uri = Uri.parse(audioUrl);
+    final path = uri.pathSegments.skip(1).join('/'); 
+    // skip(1) para quitar el nombre del bucket
+
+    await supabase.storage.from('audio').remove([path]);
+
+    print('☁️ Archivo eliminado de Storage');
+  } catch (e) {
+    print('⚠️ No se pudo eliminar el archivo: $e');
+  }
+
+  print('🎉 Track eliminado completamente');
 }

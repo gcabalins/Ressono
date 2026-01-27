@@ -1,7 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../services/audio_service.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:file_picker/file_picker.dart';
+import '../models/track.dart';
+import 'package:uuid/uuid.dart'; 
+import '../app_dependencies.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 
 class UploadTrackPage extends StatefulWidget {
   const UploadTrackPage({super.key});
@@ -13,20 +17,27 @@ class UploadTrackPage extends StatefulWidget {
 class _UploadTrackPageState extends State<UploadTrackPage> {
   final _titleController = TextEditingController();
   final _artistController = TextEditingController();
-  PickedAudio? _selectedAudio;
+
+  File? _selectedFile;
+  String? _fileName;
   bool _isLoading = false;
 
+
   Future<void> _pickFile() async {
-    final audio  = await pickAudioFile();
-    if (audio  != null) {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.audio,
+    );
+
+    if (result != null && result.files.single.path != null) {
       setState(() {
-        _selectedAudio = audio ;
+        _selectedFile = File(result.files.single.path!);
+        _fileName = result.files.single.name;
       });
     }
   }
 
-  Future<void> _upload() async {
-    if (_selectedAudio == null || _titleController.text.isEmpty) {
+  Future<void> _saveTrack() async {
+    if (_selectedFile == null || _titleController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Título y archivo son obligatorios')),
       );
@@ -34,46 +45,44 @@ class _UploadTrackPageState extends State<UploadTrackPage> {
     }
 
     setState(() => _isLoading = true);
+    final uuid = Uuid();
+    try { 
+      final trackId = uuid.v4(); final fileName = "$trackId.mp3"; 
+      // 1️⃣ Subir archivo a Supabase Storage 
+      final storage = Supabase.instance.client.storage.from('audio');
 
-    try {
-      int durationSeconds = 0;
+      await storage.upload( 
+        fileName, 
+        _selectedFile!, 
+        fileOptions: const FileOptions(cacheControl: '3600', upsert: false), 
+      ); 
+      // 2️⃣ Obtener URL pública 
+      final publicUrl = Supabase.instance.client.storage
+      .from('audio')
+      .getPublicUrl(fileName);
+      print ("Hoal$publicUrl");
 
-      // ⏱️ Duración SOLO en móvil
-      if (!kIsWeb && _selectedAudio!.file != null) {
-        durationSeconds =
-            await getAudioDurationSeconds(_selectedAudio!.file!);
-      }
-
-      // ⬆️ Subir archivo (WEB o móvil)
-      final url = await uploadAudioFile(_selectedAudio!);
-
-      // 💾 Insertar en DB
-      await insertTrack(
-        title: _titleController.text,
-        artist:
-            _artistController.text.isEmpty ? null : _artistController.text,
-        audioUrl: url,
-        durationSeconds: durationSeconds,
-      );
-      print(  '✅ Canción insertada en DB: $url, durationSeconds: $durationSeconds');
-      if (kIsWeb && durationSeconds == 0) {
-        final realDuration = await getDurationFromUrl(url);
-        print(  'ℹ️ Duración real obtenida en WEB: $realDuration segundos');
-        if (realDuration > 0) {
-          await updateTrackDuration(
-            audioUrl: url,
-            durationSeconds: realDuration,
-          );
-        }
-      }
+      // 3️⃣ Crear track con URL remota 
+      final track = Track( 
+        id: trackId, 
+        title: _titleController.text, 
+        artist: _artistController.text.isEmpty 
+          ? 'Artista desconocido' 
+          : _artistController.text, 
+          audioUrl: publicUrl, 
+          durationSeconds: 0, 
+        );
+      // 4️⃣ Guardar en SQLite + sincronizar
+      await trackRepository.insertTrack(track);
 
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Canción subida')),
+        const SnackBar(content: Text('✅ Canción añadida')),
       );
 
       setState(() {
-        _selectedAudio = null;
+        _selectedFile = null;
+        _fileName = null;
         _titleController.clear();
         _artistController.clear();
       });
@@ -85,8 +94,6 @@ class _UploadTrackPageState extends State<UploadTrackPage> {
       setState(() => _isLoading = false);
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -102,9 +109,11 @@ class _UploadTrackPageState extends State<UploadTrackPage> {
             ),
             TextField(
               controller: _artistController,
-              decoration: const InputDecoration(labelText: 'Artista (opcional)'),
+              decoration:
+                  const InputDecoration(labelText: 'Artista (opcional)'),
             ),
             const SizedBox(height: 16),
+
             Row(
               children: [
                 ElevatedButton(
@@ -114,18 +123,18 @@ class _UploadTrackPageState extends State<UploadTrackPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _selectedAudio != null
-                        ? _selectedAudio!.name
-                        : 'Ningún archivo seleccionado',
+                    _fileName ?? 'Ningún archivo seleccionado',
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
+
             const SizedBox(height: 24),
+
             ElevatedButton(
-              onPressed: _isLoading ? null : _upload,
-              child: Text(_isLoading ? 'Subiendo...' : 'Subir canción'),
+              onPressed: _isLoading ? null : _saveTrack,
+              child: Text(_isLoading ? 'Guardando...' : 'Guardar canción'),
             ),
           ],
         ),

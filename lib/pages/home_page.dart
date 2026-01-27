@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'song_list.dart';
 import 'upload_track_page.dart';
-import '../services/audio_service.dart';
-import 'playlists_page.dart';
 import 'profile_page.dart';
-
-
+import '../services/audio_service.dart';
+import '../models/track.dart';
+import 'playlists_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,34 +14,48 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 1;
+  int _selectedIndex = 0;
+  final AudioService _audio = AudioService();
+
+  late final List<Widget> _pages;
+  late final List<String> _titles;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _pages = const [
+      SongListPage(),
+      PlaylistsPage(),
+      UploadTrackPage(),
+      ProfilePage(),
+    ];
+
+    _titles = const [
+      'Canciones',
+      'Listas',
+      'Agregar',
+      'Perfil',
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
-    final audio = AudioService();
-
-    final pages = [
-      const SongListPage(),
-      const PlaylistsPage(),
-      const UploadTrackPage(),
-      const ProfilePage(),
-    ];
-
-    final titles = ['Canciones', 'Listas', 'Agregar', 'Perfil'];
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(titles[_selectedIndex]),
+        title: Text(_titles[_selectedIndex]),
         centerTitle: true,
       ),
-      body: pages[_selectedIndex],
+      body: _pages[_selectedIndex],
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           AnimatedBuilder(
-            animation: audio,
+            animation: _audio,
             builder: (_, __) {
-              if (audio.currentTrack == null) return const SizedBox();
+              if (_audio.currentTrack == null) {
+                return const SizedBox.shrink();
+              }
               return _MiniPlayer();
             },
           ),
@@ -53,13 +66,21 @@ class _HomePageState extends State<HomePage> {
             },
             destinations: const [
               NavigationDestination(
-                  icon: Icon(Icons.library_music), label: 'Canciones'),
+                icon: Icon(Icons.library_music),
+                label: 'Canciones',
+              ),
               NavigationDestination(
-                  icon: Icon(Icons.queue_music), label: 'Listas'),
+                icon: Icon(Icons.format_list_bulleted_add),
+                label: 'Listas',
+              ),
               NavigationDestination(
-                  icon: Icon(Icons.add_circle), label: 'Agregar'),
+                icon: Icon(Icons.add_circle),
+                label: 'Agregar',
+              ),
               NavigationDestination(
-                  icon: Icon(Icons.person), label: 'Perfil'),
+                icon: Icon(Icons.person),
+                label: 'Perfil',
+              ),
             ],
           ),
         ],
@@ -67,18 +88,14 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-
-/// ===============================
-/// MINI PLAYER
-/// ===============================
-
 class _MiniPlayer extends StatelessWidget {
+  const _MiniPlayer();
+
   @override
   Widget build(BuildContext context) {
     final audio = AudioService();
-    final track = audio.currentTrack!;
+    final Track track = audio.currentTrack!;
     final player = audio.player;
-
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -99,14 +116,13 @@ class _MiniPlayer extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      track['title'],
+                      track.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style:
-                          const TextStyle(fontWeight: FontWeight.w600),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     Text(
-                      track['artist'] ?? 'Artista desconocido',
+                      track.artist ?? 'Unknown Artist',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -114,14 +130,6 @@ class _MiniPlayer extends StatelessWidget {
                         color: Colors.grey.shade600,
                       ),
                     ),
-                    if (audio.sourceLabel  != null)
-                      Text(
-                        audio.sourceLabel!,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -153,7 +161,7 @@ class _MiniPlayer extends StatelessWidget {
             ],
           ),
 
-          // 🔥 SEEK BAR
+          // SEEK BAR
           StreamBuilder<Duration>(
             stream: player.positionStream,
             builder: (_, snapshot) {
@@ -178,11 +186,9 @@ class _MiniPlayer extends StatelessWidget {
                     },
                   ),
                   Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           _format(position),
@@ -205,10 +211,8 @@ class _MiniPlayer extends StatelessWidget {
   }
 
   String _format(Duration d) {
-    final m =
-        d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s =
-        d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$m:$s';
   }
 }

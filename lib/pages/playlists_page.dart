@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/audio_service.dart';
+import '../app_dependencies.dart';
+import '../models/playlist.dart';
 import 'playlist_detail_page.dart';
 
 class PlaylistsPage extends StatefulWidget {
@@ -10,83 +11,99 @@ class PlaylistsPage extends StatefulWidget {
 }
 
 class _PlaylistsPageState extends State<PlaylistsPage> {
-  late Future<List<Map<String, dynamic>>> _playlistsFuture;
+  late Future<List<Playlist>> _playlistsFuture;
 
   @override
   void initState() {
     super.initState();
-    _playlistsFuture = fetchPlaylists();
+    _load();
   }
 
-  Future<void> _reload() async {
-    setState(() {
-      _playlistsFuture = fetchPlaylists();
-    });
+  void _load() {
+    _playlistsFuture = playlistRepository.getAllPlaylists();
   }
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: _reload,
-      child: FutureBuilder<List<Map<String, dynamic>>>(
+    return Scaffold(
+      body: FutureBuilder<List<Playlist>>(
         future: _playlistsFuture,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return ListView(
-              children: [
-                SizedBox(height: 200),
-                Center(child: CircularProgressIndicator()),
-              ],
-            );
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No tienes listas todavía'));
           }
 
           final playlists = snapshot.data!;
 
-          if (playlists.isEmpty) {
-            return ListView(
-              children: const [
-                SizedBox(height: 120),
-                Center(
-                  child: Text(
-                    'No tienes listas todavía',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ),
-              ],
-            );
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.all(12),
+          return ListView.builder(
             itemCount: playlists.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
+            itemBuilder: (_, index) {
               final playlist = playlists[index];
 
               return ListTile(
                 leading: const Icon(Icons.queue_music),
-                title: Text(
-                  playlist['name'],
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: const Text('Lista de reproducción'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
+                title: Text(playlist.name),
+                onTap: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => PlaylistDetailPage(
-                        playlistId: playlist['id'],
-                        playlistName: playlist['name'],
-                      ),
+                      builder: (_) =>
+                          PlaylistDetailPage(playlist: playlist),
                     ),
                   );
+                  setState(_load);
                 },
               );
             },
           );
         },
       ),
+
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.add),
+        onPressed: _createPlaylist,
+      ),
+    );
+  }
+
+  void _createPlaylist() {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text('Nueva lista'),
+          content: TextField(
+            controller: controller,
+            decoration:
+                const InputDecoration(hintText: 'Nombre de la lista'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final name = controller.text.trim();
+                if (name.isEmpty) return;
+
+                await playlistRepository.createPlaylist(name);
+
+                if (!context.mounted) return;
+                Navigator.pop(context);
+                setState(_load);
+              },
+              child: const Text('Crear'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

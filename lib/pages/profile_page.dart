@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../services/audio_cache.dart';
 import '../services/audio_service.dart';
 import 'settings_page.dart';
 
@@ -23,9 +22,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _loadCacheSize() async {
-    final size = await AudioCacheManager().getCacheSizeMB();
+    //final size = await AudioCacheManager().getCacheSizeMB();
     setState(() {
-      _cacheSizeMB = size;
+      //_cacheSizeMB = size;
     });
   }
 
@@ -71,7 +70,7 @@ class _ProfilePageState extends State<ProfilePage> {
             leading: const Icon(Icons.delete),
             title: const Text('Limpiar caché'),
             onTap: () async {
-              await AudioCacheManager().clearCache();
+              //await AudioCacheManager().clearCache();
               await _loadCacheSize();
 
               if (!mounted) return;

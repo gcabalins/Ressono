@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/audio_service.dart';
 import 'settings_page.dart';
+import '../services/audio_cache_manager.dart';
+import 'login_page.dart';
+import 'package:image_picker/image_picker.dart';
 
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+  
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -14,17 +18,73 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final supabase = Supabase.instance.client;
   double? _cacheSizeMB;
+  String? username;
+  String? avatarUrl;
+
 
   @override
   void initState() {
     super.initState();
     _loadCacheSize();
+    _loadProfile();
   }
 
-  Future<void> _loadCacheSize() async {
-    //final size = await AudioCacheManager().getCacheSizeMB();
+  Future<void> _pickAndUploadAvatar() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+
+    if (file == null) return;
+
+    final user = supabase.auth.currentUser!;
+    final bytes = await file.readAsBytes();
+    final fileExt = file.path.split('.').last;
+    final fileName = "${user.id}.$fileExt";
+
+    // Subir a Storage
+    await supabase.storage
+        .from('avatars')
+        .uploadBinary(
+          fileName,
+          bytes,
+          fileOptions: FileOptions(upsert: true),
+        );
+
+    // Obtener URL pública
+    final url = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+    // Guardar en profiles
+    await supabase.from('profiles').update({
+      'avatar_url': url,
+    }).eq('id', user.id);
+
     setState(() {
-      //_cacheSizeMB = size;
+      avatarUrl = url;
+    });
+  }
+
+  Future<void> _loadProfile() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    final data = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    setState(() {
+      username = data?["username"];
+      avatarUrl = data?["avatar_url"];
+    });
+  }
+
+
+  Future<void> _loadCacheSize() async {
+  final size = await AudioCacheManager().getCacheSizeMB();
+    setState(() {
+      _cacheSizeMB = size;
     });
   }
 
@@ -41,12 +101,19 @@ class _ProfilePageState extends State<ProfilePage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // 👤 USUARIO
           ListTile(
-            leading: const Icon(Icons.person),
-            title: Text(user.email ?? 'Sin email'),
-            subtitle: Text(
-              'ID: ${user.id.substring(0, 6)}...',
+            leading: CircleAvatar(
+              radius: 28,
+              backgroundImage: avatarUrl != null
+                  ? NetworkImage(avatarUrl!)
+                  : null,
+              child: avatarUrl == null ? const Icon(Icons.person) : null,
+            ),
+            title: Text(username ?? "Cargando..."),
+            subtitle: Text(user.email ?? "Sin email"),
+            trailing: TextButton(
+              child: const Text("Cambiar"),
+              onPressed: _pickAndUploadAvatar,
             ),
           ),
 
@@ -64,21 +131,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
 
           const Divider(),
-
-          // 🔥 ACCIONES
-          ListTile(
-            leading: const Icon(Icons.delete),
-            title: const Text('Limpiar caché'),
-            onTap: () async {
-              //await AudioCacheManager().clearCache();
-              await _loadCacheSize();
-
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Caché limpiada')),
-              );
-            },
-          ),
+          
           ListTile(
             leading: const Icon(Icons.settings),
             title: const Text('Ajustes'),
@@ -104,6 +157,12 @@ class _ProfilePageState extends State<ProfilePage> {
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Sesión cerrada')),
+              );
+              // Redirigir al login 
+              Navigator.pushAndRemoveUntil( 
+                context, 
+                MaterialPageRoute(builder: (_) => const LoginPage()), 
+                (_) => false,
               );
             },
           ),

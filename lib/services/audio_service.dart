@@ -3,6 +3,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/track.dart';
+import './audio_cache_manager.dart';
+import 'package:path_provider/path_provider.dart';
+
+
 
 /// ===============================
 ///  PICK AUDIO (MÓVIL)
@@ -94,12 +98,25 @@ class AudioService extends ChangeNotifier {
 
     _currentIndex = index;
     _currentSourceLabel = sourceLabel;
+    AudioService().printCachedTracks();
+
+
 
     notifyListeners();
 
-    final sources = tracks
-        .map((t) => AudioSource.uri(Uri.parse(t.audioUrl)))
-        .toList();
+    final sources = <AudioSource>[];
+
+    for (final t in tracks) {
+      final file = await AudioCacheManager.manager.getSingleFile(t.audioUrl);
+
+      sources.add(
+        AudioSource.uri(
+          Uri.file(file.path),
+        ),
+      );
+    }
+
+
 
     await _player.setAudioSource(
       ConcatenatingAudioSource(children: sources),
@@ -150,4 +167,38 @@ class AudioService extends ChangeNotifier {
 
     notifyListeners();
   }
+
+
+Future<void> printCachedTracks() async {
+  final dir = await getTemporaryDirectory();
+  final cacheDir = Directory("${dir.path}/audioCache");
+
+  if (!cacheDir.existsSync()) {
+    print("📭 No existe la carpeta de caché");
+    return;
+  }
+
+  final files = cacheDir.listSync();
+
+  if (files.isEmpty) {
+    print("📭 No hay canciones en la caché");
+    return;
+  }
+
+  print("🎵 Canciones en caché (${files.length}):");
+
+  for (final f in files) {
+    if (f is File) {
+      final size = await f.length();
+      print("""
+-------------------------
+Archivo: ${f.path.split('/').last}
+Ruta:    ${f.path}
+Tamaño:  $size bytes
+-------------------------
+""");
+    }
+  }
+}
+
 }

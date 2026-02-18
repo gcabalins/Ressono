@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'song_list.dart';
+import 'song_list_page.dart';
 import 'upload_track_page.dart';
 import 'profile_page.dart';
 import '../services/audio_service.dart';
 import '../models/track.dart';
 import 'playlists_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'explore_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,7 +18,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   final AudioService _audio = AudioService();
-
+  final supabase = Supabase.instance.client;
   late final List<Widget> _pages;
   late final List<String> _titles;
 
@@ -26,6 +28,7 @@ class _HomePageState extends State<HomePage> {
 
     _pages = const [
       SongListPage(),
+      ExplorePage(),
       PlaylistsPage(),
       UploadTrackPage(),
       ProfilePage(),
@@ -33,6 +36,7 @@ class _HomePageState extends State<HomePage> {
 
     _titles = const [
       'Canciones',
+      'Explorar',
       'Listas',
       'Agregar',
       'Perfil',
@@ -68,6 +72,10 @@ class _HomePageState extends State<HomePage> {
               NavigationDestination(
                 icon: Icon(Icons.library_music),
                 label: 'Canciones',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.language_sharp),
+                label: 'Explorar',
               ),
               NavigationDestination(
                 icon: Icon(Icons.format_list_bulleted_add),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/audio_cache_manager.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -8,7 +9,7 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  //final cache = AudioCacheManager();
+  final cache = AudioCacheManager();
   double? cacheSize;
 
   @override
@@ -18,12 +19,12 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadCacheSize() async {
-   // final size = await cache.getCacheSizeMB();
-
+    final size = await cache.getCacheSizeMB();
+    setState(() { cacheSize = size; });
   }
 
   Future<void> _clearCache() async {
-    //await cache.clearCache();
+    await cache.clearCache();
     await _loadCacheSize();
   }
 
@@ -41,11 +42,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   ? 'Calculando...'
                   : 'Espacio usado: ${cacheSize!.toStringAsFixed(2)} MB',
               style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Límite máximo:  MB',
-              style: const TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 30),
             ElevatedButton.icon(

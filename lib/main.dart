@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'pages/home_page.dart';
 import 'app_dependencies.dart';
+import 'pages/auth_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,13 +10,6 @@ void main() async {
   await Supabase.initialize(
     url: 'https://zqutxdesvnnajgccprak.supabase.co',
     anonKey: 'sb_publishable_Jbhl52PuvlBjEz566KE2rQ_0a3QKehg',
-  );
-
-  final supabase = Supabase.instance.client;
-
-  await supabase.auth.signInWithPassword(
-    email: 'gcabalins@gmail.com',
-    password: '12345678',
   );
 
   await setupDependencies();
@@ -34,7 +27,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: const AuthGate(),
     );
   }
 }

@@ -4,14 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/track.dart';
 import './audio_cache_manager.dart';
-import 'package:path_provider/path_provider.dart';
 
-
-
-/// ===============================
-///  PICK AUDIO (MÓVIL)
-/// ===============================
-
+/// Represents a picked local audio file.
 class PickedAudio {
   final File file;
   final String name;
@@ -22,12 +16,18 @@ class PickedAudio {
   });
 }
 
+/// Opens a file picker restricted to audio files.
+///
+/// Returns a PickedAudio instance if a file is selected,
+/// otherwise returns null.
 Future<PickedAudio?> pickAudioFile() async {
   final result = await FilePicker.platform.pickFiles(
     type: FileType.audio,
   );
 
-  if (result == null || result.files.single.path == null) return null;
+  if (result == null || result.files.single.path == null) {
+    return null;
+  }
 
   return PickedAudio(
     file: File(result.files.single.path!),
@@ -35,6 +35,9 @@ Future<PickedAudio?> pickAudioFile() async {
   );
 }
 
+/// Retrieves audio duration in seconds from a remote URL.
+///
+/// A temporary AudioPlayer instance is created and disposed.
 Future<int> getAudioDurationSeconds(String audioUrl) async {
   final player = AudioPlayer();
   try {
@@ -45,31 +48,52 @@ Future<int> getAudioDurationSeconds(String audioUrl) async {
   }
 }
 
-/// ===============================
-///  AUDIO SERVICE (MVP)
-/// ===============================
-
+/// Central audio playback service.
+///
+/// Responsibilities:
+/// - Manage playback state.
+/// - Maintain playback queue.
+/// - Handle track changes.
+/// - Notify UI listeners of state updates.
+///
+/// Implemented as a singleton.
 class AudioService extends ChangeNotifier {
-  static final AudioService _instance = AudioService._internal();
+  static final AudioService _instance =
+      AudioService._internal();
+
+  /// Returns the singleton instance.
   factory AudioService() => _instance;
+
   AudioService._internal() {
     _init();
   }
 
   final AudioPlayer _player = AudioPlayer();
   final List<Track> _queue = [];
+
   int _currentIndex = -1;
   String? _currentSourceLabel;
 
+  /// Exposes the internal AudioPlayer.
   AudioPlayer get player => _player;
+
+  /// Indicates whether playback is active.
   bool get isPlaying => _player.playing;
+
+  /// Optional label describing the source of the current queue.
   String? get currentSourceLabel => _currentSourceLabel;
 
+  /// Returns the currently active track.
   Track? get currentTrack =>
       (_currentIndex >= 0 && _currentIndex < _queue.length)
           ? _queue[_currentIndex]
           : null;
 
+  /// Initializes player listeners.
+  ///
+  /// Subscribes to:
+  /// - current index changes
+  /// - player state changes
   void _init() {
     _player.currentIndexStream.listen((index) {
       if (index != null) {
@@ -83,14 +107,23 @@ class AudioService extends ChangeNotifier {
     });
   }
 
-  /// ➕ Añadir track (desde Upload)
+  /// Adds a track to the internal queue.
   Future<void> addTrack(Track track) async {
     _queue.add(track);
     notifyListeners();
   }
 
-  /// ▶️ Reproducir lista
-  Future<void> playFromList(List<Track> tracks, int index, String? sourceLabel,
+  /// Replaces the current queue and starts playback.
+  ///
+  /// Steps:
+  /// - Clears existing queue
+  /// - Loads cached audio files
+  /// - Sets audio source
+  /// - Starts playback
+  Future<void> playFromList(
+    List<Track> tracks,
+    int index,
+    String? sourceLabel,
   ) async {
     _queue
       ..clear()
@@ -98,16 +131,14 @@ class AudioService extends ChangeNotifier {
 
     _currentIndex = index;
     _currentSourceLabel = sourceLabel;
-    AudioService().printCachedTracks();
-
-
 
     notifyListeners();
 
     final sources = <AudioSource>[];
 
     for (final t in tracks) {
-      final file = await AudioCacheManager.manager.getSingleFile(t.audioUrl);
+      final file =
+          await AudioCacheManager.manager.getSingleFile(t.audioUrl);
 
       sources.add(
         AudioSource.uri(
@@ -116,18 +147,15 @@ class AudioService extends ChangeNotifier {
       );
     }
 
-
-
     await _player.setAudioSource(
       ConcatenatingAudioSource(children: sources),
       initialIndex: index,
     );
 
     await _player.play();
-    
   }
 
-  /// ⏯ Play / Pause
+  /// Toggles between play and pause states.
   void togglePlayPause() {
     if (_player.playing) {
       _player.pause();
@@ -137,68 +165,46 @@ class AudioService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ⏭ Siguiente
+  /// Skips to the next track if available.
   void playNext() {
     if (_player.hasNext) {
       _player.seekToNext();
     }
   }
 
-  /// ⏮ Anterior
+  /// Returns to the previous track if available.
   void playPrevious() {
     if (_player.hasPrevious) {
       _player.seekToPrevious();
     }
   }
 
-  /// ⏹ Stop
+  /// Stops playback and clears the queue.
   void stopAndClear() {
     _player.stop();
     _queue.clear();
     _currentIndex = -1;
     notifyListeners();
   }
+
+  /// Stops playback without clearing queue.
+  void stopOnProfile() {
+    _player.stop();
+    _currentIndex = -1;
+    notifyListeners();
+  }
+
+  /// Removes a deleted track from the queue.
+  ///
+  /// Adjusts current index if necessary.
   void onTrackDeleted(String trackId) {
     _queue.removeWhere((t) => t.id == trackId);
 
     if (_currentIndex >= _queue.length) {
-      _currentIndex = _queue.isEmpty ? -1 : _queue.length - 1;
+      _currentIndex =
+          _queue.isEmpty ? -1 : _queue.length - 1;
     }
 
     notifyListeners();
   }
-
-
-Future<void> printCachedTracks() async {
-  final dir = await getTemporaryDirectory();
-  final cacheDir = Directory("${dir.path}/audioCache");
-
-  if (!cacheDir.existsSync()) {
-    print("📭 No existe la carpeta de caché");
-    return;
-  }
-
-  final files = cacheDir.listSync();
-
-  if (files.isEmpty) {
-    print("📭 No hay canciones en la caché");
-    return;
-  }
-
-  print("🎵 Canciones en caché (${files.length}):");
-
-  for (final f in files) {
-    if (f is File) {
-      final size = await f.length();
-      print("""
--------------------------
-Archivo: ${f.path.split('/').last}
-Ruta:    ${f.path}
-Tamaño:  $size bytes
--------------------------
-""");
-    }
-  }
-}
-
 }

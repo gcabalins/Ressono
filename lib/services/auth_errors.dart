@@ -1,51 +1,52 @@
-
 class AuthErrorMapper {
   static String messageFromCode(String errorMessage) {
     final msg = errorMessage.toLowerCase();
     print("Auth error: $msg");
 
-    // EMAIL NO VÁLIDO
+    // INVALID EMAIL
     if (msg.contains("invalid email") || msg.contains("email format")) {
-      return "El correo no es válido.";
+      return "The email address is not valid.";
     }
 
-    // CONTRASEÑA INCORRECTA
+    // INVALID CREDENTIALS
     if (msg.contains("invalid login credentials")) {
-      return "Correo o contraseña incorrectos.";
+      return "Incorrect email or password.";
     }
-    // CONTRASEÑA CORTA
+
+    // PASSWORD TOO SHORT
     if (msg.contains("password should be at least 6 characters")) {
-      return "La contraseña debe tener al menos 6 caracteres.";
+      return "Password must be at least 6 characters long.";
     }
 
-    // USUARIO NO EXISTE
+    // USER NOT FOUND
     if (msg.contains("user not found")) {
-      return "No existe ninguna cuenta con ese correo.";
+      return "No account found with this email address.";
     }
 
-    // EMAIL NO VERIFICADO
-    if (msg.contains("email not confirmed") ||
-        msg.contains("email not confirmed")) {
-      return "Debes verificar tu correo antes de iniciar sesión.";
+    // EMAIL NOT VERIFIED
+    if (msg.contains("email not confirmed")) {
+      return "You must verify your email before logging in.";
     }
 
-    // EMAIL YA REGISTRADO
+    // EMAIL ALREADY REGISTERED
     if (msg.contains("user already registered") ||
         msg.contains("duplicate key")) {
-      return "Ya existe una cuenta con ese correo.";
+      return "An account with this email already exists.";
     }
 
-    // CONTRASEÑA DÉBIL
+    // WEAK PASSWORD
     if (msg.contains("weak password")) {
-      return "La contraseña es demasiado débil.";
+      return "The password is too weak.";
     }
 
-    // ERROR DE RED
+    // NETWORK ERROR
     if (msg.contains("network") || msg.contains("timeout")) {
-      return "No hay conexión a internet.";
+      return "No internet connection.";
     }
 
-    // ERROR DESCONOCIDO
-    return "Ha ocurrido un error inesperado." + "(Código: ${msg.hashCode})" + "(errorMessage: $errorMessage)";
+    // UNKNOWN ERROR
+    return "An unexpected error occurred. "
+        "(Code: ${msg.hashCode}) "
+        "(Details: $errorMessage)";
   }
 }

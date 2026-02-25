@@ -8,26 +8,41 @@ import 'repositories/track_repository.dart';
 import 'repositories/playlist_repository.dart';
 import 'services/playlist_sync_service.dart';
 
+/// Global repository instances.
+///
+/// These are initialized during application bootstrap
+/// and provide access to the data layer across the app.
 late final TrackRepository trackRepository;
 late final PlaylistRepository playlistRepository;
 
+/// Configures and initializes all application dependencies.
+///
+/// This function acts as the composition root of the app,
+/// wiring together:
+/// - Local database
+/// - Data access objects (DAOs)
+/// - Remote synchronization services
+/// - Core infrastructure services
+/// - Repositories
+///
+/// Must be executed before runApp().
 Future<void> setupDependencies() async {
-  // SQLite
+  // Initialize local SQLite database.
   final database = await LocalDatabase.instance;
 
-  // Core services
+  // Initialize core services.
   final audioService = AudioService();
   final supabase = Supabase.instance.client;
 
-  // DAOs
+  // Initialize data access objects.
   final trackDao = TrackDao(database);
   final playlistDao = PlaylistDao(database);
 
-  // Sync services
+  // Initialize remote synchronization services.
   final trackSyncService = TrackSyncService(supabase);
   final playlistSyncService = PlaylistSyncService(supabase);
 
-  // Repositories
+  // Initialize repositories.
   trackRepository = TrackRepository(
     trackDao,
     trackSyncService,

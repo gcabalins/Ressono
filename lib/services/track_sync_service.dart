@@ -1,12 +1,24 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/track.dart';
 
+/// Handles remote synchronization of tracks with Supabase.
+///
+/// This service performs best-effort operations:
+/// - Insert or update tracks
+/// - Delete tracks and related storage files
+///
+/// Errors are intentionally suppressed to avoid
+/// interrupting local application flow.
 class TrackSyncService {
   final SupabaseClient _supabase;
 
+  /// Creates a TrackSyncService instance.
   TrackSyncService(this._supabase);
 
-  /// ⬆️ Insert / Update remoto (best effort)
+  /// Inserts or updates a track in the remote database.
+  ///
+  /// Uses upsert with conflict resolution on `id`.
+  /// Operation is skipped if no authenticated user exists.
   Future<void> syncInsert(Track track) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
@@ -24,33 +36,42 @@ class TrackSyncService {
         onConflict: 'id',
       );
     } catch (_) {
-      // silencio absoluto (best effort)
+      // Best-effort strategy: errors are ignored.
     }
   }
 
-  /// 🗑 Delete remoto (best effort)
+  /// Deletes a track remotely.
+  ///
+  /// Steps:
+  /// 1. Remove playlist relations
+  /// 2. Delete track record
+  /// 3. Remove associated file from Supabase Storage
+  ///
+  /// All operations follow a best-effort strategy.
   Future<void> syncDelete(String trackId, String audioUrl) async {
     try {
-      // 1️⃣ borrar referencias
+      // Remove playlist relations.
       await _supabase
           .from('playlist_tracks')
           .delete()
           .eq('track_id', trackId);
 
-      // 2️⃣ borrar track
+      // Delete track record.
       await _supabase
           .from('tracks')
           .delete()
           .eq('id', trackId);
 
-      // 3️⃣ borrar archivo de storage
+      // Remove file from storage bucket.
       try {
         final uri = Uri.parse(audioUrl);
         final path = uri.pathSegments.skip(1).join('/');
         await _supabase.storage.from('audio').remove([path]);
-      } catch (_) {}
+      } catch (_) {
+        // Storage deletion ignored.
+      }
     } catch (_) {
-      // silencio absoluto
+      // Best-effort strategy: errors are ignored.
     }
   }
 }

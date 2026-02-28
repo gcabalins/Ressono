@@ -122,6 +122,7 @@ class _UploadTrackPageState extends State<UploadTrackPage> {
         'audio_url': publicUrl,
         'duration_seconds': 0,
         'is_public': _isPublic,
+        'created_at': DateTime.now().toUtc().toIso8601String(),
       });
 
       final track = Track(

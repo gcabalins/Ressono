@@ -167,7 +167,7 @@ class _HomePageState extends State<HomePage> {
                 return const SizedBox.shrink();
               }
 
-              return const _MiniPlayer();
+              return _MiniPlayer();
             },
           ),
           _buildNavigationBar(),

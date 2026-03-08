@@ -10,6 +10,7 @@ class Track {
   final String? artist;
   final String audioUrl;
   final int durationSeconds;
+  final DateTime createdAt;
 
   /// Creates a Track instance.
   const Track({
@@ -19,6 +20,8 @@ class Track {
     this.artist,
     required this.audioUrl,
     required this.durationSeconds,
+    required this.createdAt,
+
   });
 
   /// Creates a Track instance from a database or API map.
@@ -30,6 +33,7 @@ class Track {
       artist: map['artist'] as String?,
       audioUrl: map['audio_url'] as String,
       durationSeconds: map['duration_seconds'] as int,
+      createdAt: DateTime.parse(map['created_at'] as String),
     );
   }
 
@@ -42,6 +46,7 @@ class Track {
       'artist': artist,
       'audio_url': audioUrl,
       'duration_seconds': durationSeconds,
+      'created_at': createdAt.toUtc().toIso8601String(),
     };
   }
 
@@ -55,6 +60,7 @@ class Track {
     String? artist,
     String? audioUrl,
     int? durationSeconds,
+    DateTime? createdAt,
   }) {
     return Track(
       id: id ?? this.id,
@@ -63,6 +69,7 @@ class Track {
       artist: artist ?? this.artist,
       audioUrl: audioUrl ?? this.audioUrl,
       durationSeconds: durationSeconds ?? this.durationSeconds,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

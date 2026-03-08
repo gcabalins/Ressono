@@ -132,6 +132,7 @@ class _UploadTrackPageState extends State<UploadTrackPage> {
         artist: username,
         audioUrl: publicUrl,
         durationSeconds: 0,
+        createdAt: DateTime.now(),
       );
 
       await trackRepository.insertTrack(track);
